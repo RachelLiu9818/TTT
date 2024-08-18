@@ -26,7 +26,7 @@ from utils.messages_en import (
 )
  
 
-SESSION_DIR = os.environ["SESSION_DIR"]
+SESSION_DIR = "..\\usr_data"
 
 DEBUG_MODE = True
 
