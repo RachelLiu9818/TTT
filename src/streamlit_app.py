@@ -1,3 +1,5 @@
+global DEBUG_MODE, translations, REINFORCEMENT_SYSTEM_MSG, INITIAL_SYSTEM_MSG, INTROS, CARDS_REINFORCEMENT_SYSTEM_MSG, TAROT_DECK
+
 import json
 import os
 import random
@@ -6,34 +8,75 @@ from pathlib import Path
 from typing import List
 from uuid import uuid4
 
-import openai
+from openai import OpenAI
+
+client = OpenAI()
 import streamlit as st
 
 from utils.helpers import date_id
-from utils.messages import (
+
+from utils.tarot_cn import TAROT_DECK
+import utils.language as language
+
+from utils.messages_en import (
     REINFORCEMENT_SYSTEM_MSG,
     INITIAL_SYSTEM_MSG,
     INTROS,
     CARDS_REINFORCEMENT_SYSTEM_MSG,
 )
-from utils.tarot import TAROT_DECK
+ 
 
 SESSION_DIR = os.environ["SESSION_DIR"]
 
-st.set_page_config(
-    layout="wide",
-    initial_sidebar_state="collapsed",
-    page_title="Emily Tarot - Virtual Tarot Readings",
-)
+DEBUG_MODE = True
 
+st.set_page_config(
+    layout="centered",
+    initial_sidebar_state="collapsed",
+    page_title="Tarot Hermit- Virtual Tarot Readings",
+)
 
 IMAGE_DIR = (Path(__file__).parent / "images").relative_to(Path(__file__).parent)
 
+# Select Language
+translations = language.cn
+language_choice = st.selectbox("Language", ("简体中文", "English"))
+if language_choice == "简体中文":
+    translations = language.cn
+    from utils.messages_cn import (
+        REINFORCEMENT_SYSTEM_MSG,
+        INITIAL_SYSTEM_MSG,
+        INTROS,
+        CARDS_REINFORCEMENT_SYSTEM_MSG,
+    )
+    from utils.tarot_cn import TAROT_DECK
+elif language_choice == "English":
+    translations = language.en
+    from utils.messages_en import (
+        REINFORCEMENT_SYSTEM_MSG,
+        INITIAL_SYSTEM_MSG,
+        INTROS,
+        CARDS_REINFORCEMENT_SYSTEM_MSG,
+    )
+    from utils.tarot_en import TAROT_DECK
+
+
+def is_json_serializable(value):
+    try:
+        json.dumps(value)
+        return True
+    except TypeError:
+        return False
 
 def save_session():
     st.experimental_set_query_params(s=st.session_state.session_id)
     path = Path(SESSION_DIR) / (st.session_state.session_id + ".json")
-    path.write_text(json.dumps(st.session_state.to_dict()))
+    
+    # Filter out non-serializable objects
+    serializable_state = {key: value for key, value in st.session_state.items() if is_json_serializable(value)}
+    
+    # Save only the serializable part of the session state
+    path.write_text(json.dumps(serializable_state))
 
 
 @dataclass
@@ -51,6 +94,7 @@ class ChatSession:
 
 
 def init_state():
+    global DEBUG_MODE, translations, REINFORCEMENT_SYSTEM_MSG, INITIAL_SYSTEM_MSG, INTROS, CARDS_REINFORCEMENT_SYSTEM_MSG
     query_session = st.experimental_get_query_params().get("s")
     if query_session:
         query_session = query_session[0]
@@ -99,21 +143,21 @@ def init_state():
 
 
 def initial_view():
+
+
     st.markdown(
-        "<h1 style='text-align: center; color: purple;'>Shall we begin?</h1>",
+        f"<h1 style='text-align: center; color: purple; font-size: 30px;'>{translations['Heading_Start']}</h1>",
         unsafe_allow_html=True,
     )
 
-    card_draw_type = st.selectbox(
-        "How would you like to select cards?",
-        ["Draw cards virtually", "Draw cards from your own tarot deck"],
-    )
+    card_draw_type = "Draw cards virtually"
+    
 
     def _handle_click():
         st.session_state.card_draw_type = card_draw_type
         st.session_state.started_chat = True
 
-    st.button("Yes", use_container_width=True, on_click=_handle_click)
+    st.button(f"{translations['Start']}", use_container_width=True, on_click=_handle_click)
 
 
 @dataclass
@@ -129,11 +173,11 @@ def _extract_commands(content: str) -> AiCommands:
     questions = []
     remove_lines = []
     for line in content.splitlines():
-        if line.startswith("QUESTION: "):
-            questions.append(line.removeprefix("QUESTION: "))
+        if line.startswith(f"{translations['Question']}"):
+            questions.append(line.removeprefix(f"{translations['Question']}"))
             remove_lines.append(line)
-        elif line.startswith("PULL TAROT CARDS"):
-            _, num_cards_str = line.split(":")
+        elif line.startswith(f"{translations['Draw_Card']}"):
+            _, num_cards_str = line.split(f"{translations['Colon']}")
             num_cards += int(num_cards_str)
             remove_lines.append(line)
 
@@ -147,6 +191,28 @@ def _extract_commands(content: str) -> AiCommands:
 
 
 def main():
+    global translations, REINFORCEMENT_SYSTEM_MSG, INITIAL_SYSTEM_MSG, INTROS, CARDS_REINFORCEMENT_SYSTEM_MSG, TAROT_DECK
+
+    # Start BGM
+    audio_file_path = '..\\assets\\tarot_bgm.mp3' 
+    audio_file = open(audio_file_path, 'rb')
+    audio_bytes = audio_file.read()
+    # Convert bytes to base64
+    import base64
+    audio_base64 = base64.b64encode(audio_bytes).decode()
+
+    audio_html = f"""
+    <audio controls autoplay="true" loop="true">
+        <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+        Your browser does not support the audio element.
+    </audio>
+    """
+    st.components.v1.html(audio_html, height=0)
+
+    st.markdown(
+        f"<h1 style='text-align: center; color: purple; font-size: 70px;'>{translations['Title']}</h1>",
+        unsafe_allow_html=True,
+    )
     _, c1, c2, c3, _ = st.columns(5)
     c1.image(st.session_state.header_images[0])
     c2.image(st.session_state.header_images[1])
@@ -204,31 +270,32 @@ def main():
         num_cards = 0
         if ai_commands.draw_cards:
             num_cards = ai_commands.draw_cards
-            include_s = "s" if num_cards > 1 else ""
-            st.write(f"Pull {num_cards} card{include_s}")
+            include_s = "s" if num_cards > 1 and language_choice == "English" else ""
+            st.write(f"{translations['Pull']} {num_cards} {translations['Card']}{include_s}")
 
             if virtual_cards:
-                if st.form_submit_button("Switch to your own Tarot deck"):
-                    st.session_state.chosen_virtual_cards = []
-                    st.session_state.card_draw_type = (
-                        "Draw cards from your own tarot deck"
-                    )
-                    st.experimental_rerun()
-                st.write("Use the buttons below to virtually shuffle and pull cards")
+                # if st.form_submit_button("Switch to your own Tarot deck"):
+                #     st.session_state.chosen_virtual_cards = []
+                #     st.session_state.card_draw_type = (
+                #         "Draw cards from your own tarot deck"
+                #     )
+                #     st.experimental_rerun()
+                st.write(f"{translations['Shuffle_Prompt']}")
                 c1, c2, c3, _ = st.columns((1, 1, 1, 2))
-                shuffle_seed = c1.text_input(
-                    "Shuffle Value",
-                    value=st.session_state.get("shuffle_seed", uuid4().hex),
-                    help="This value will be used to seed the random generator before drawing cards",
-                )
+                # shuffle_seed = c1.text_input(
+                #     "Shuffle Value",
+                #     value=st.session_state.get("shuffle_seed", uuid4().hex),
+                #     help="This value will be used to seed the random generator before drawing cards",
+                # )
+                shuffle_seed = value=st.session_state.get("shuffle_seed", uuid4().hex)
                 if shuffle_seed:
                     st.session_state.shuffle_seed = shuffle_seed
 
-                if c2.form_submit_button("Shuffle"):
+                if c2.form_submit_button(f"{translations['Shuffle']}"):
                     st.session_state.shuffle_seed = uuid4().hex
                     st.experimental_rerun()
 
-                if c3.form_submit_button("Pull Card"):
+                if c3.form_submit_button(f"{translations['Pull_Card']}"):
                     if len(st.session_state.chosen_virtual_cards) == num_cards:
                         st.error("Already pulled requested number of cards")
                     else:
@@ -247,7 +314,7 @@ def main():
                     except IndexError:
                         chosen = ""
                     cards.append(
-                        st.text_input(f"Card {x+1}", value=chosen, disabled=True)
+                        st.text_input(f"{translations['Card'][1:]} {x+1}", value=chosen, disabled=True)
                     )
 
             else:
@@ -271,7 +338,7 @@ def main():
                             disabled=virtual_cards,
                         )
                     )
-        if st.form_submit_button("Submit"):
+        if st.form_submit_button(f"Submit"):
             can_submit = True
             if len([x for x in answers if x]) != len(ai_commands.questions_to_ask):
                 can_submit = False
@@ -289,10 +356,10 @@ def main():
                 if answers:
                     combined_answer = "\n\n".join(answers)
                     chat_session.user_says(combined_answer)
-                    _check_user_message(combined_answer)
+                    # _check_user_message(combined_answer)
                 if cards:
                     chat_session.system_says(
-                        "The selected cards were: " + ", ".join(cards)
+                        f"{translations['Selected_Cards']}" + ", ".join(cards)
                     )
                     st.session_state.all_chosen_cards.extend(cards)
                     st.session_state.chosen_virtual_cards = []
@@ -305,15 +372,13 @@ def main():
                         response = _get_ai_response(chat_session)
                         try:
                             _extract_commands(
-                                response["choices"][0]["message"]["content"]
+                                response.choices[0].message.content
                             )
                             break
                         except Exception:
                             print("Got bad response, trying again")
                             st.session_state.bad_responses.append(response)
-                            st.session_state.total_tokens_used += response["usage"][
-                                "total_tokens"
-                            ]
+                            st.session_state.total_tokens_used += response.usage.total_tokens
                             if attempts >= max_attempts:
                                 print("Out of attempts")
                                 st.error(
@@ -321,10 +386,10 @@ def main():
                                 )
                                 return
 
-                st.session_state.total_tokens_used += response["usage"]["total_tokens"]
+                st.session_state.total_tokens_used += response.usage.total_tokens
 
                 chat_session.assistant_says(
-                    response["choices"][0]["message"]["content"]
+                    response.choices[0].message.content
                 )
 
                 save_session()
@@ -338,13 +403,14 @@ class FlaggedInputError(RuntimeError):
     pass
 
 
-def _check_user_message(msg: str):
-    response = openai.Moderation.create(msg)
-    if response.results[0].flagged:
-        raise FlaggedInputError()
+# def _check_user_message(msg: str):
+#     response = client.moderations.create(msg)
+#     if response.results[0].flagged:
+#         raise FlaggedInputError()
 
 
 def _get_ai_response(chat_session: ChatSession):
+    global DEBUG_MODE, translations, REINFORCEMENT_SYSTEM_MSG, INITIAL_SYSTEM_MSG, INTROS, CARDS_REINFORCEMENT_SYSTEM_MSG
     chat_history = chat_session.history[:]
     # add the initial system message describing the AI's role
     chat_history.insert(0, {"role": "system", "content": INITIAL_SYSTEM_MSG})
@@ -352,7 +418,7 @@ def _get_ai_response(chat_session: ChatSession):
     # now add a reinforcing message for the AI, based on whether we are interpreting cards right now or not
     last_msg = chat_history[-1]
     if last_msg["role"] == "system" and last_msg["content"].startswith(
-        "The selected cards were"
+        f"{translations['Selected_Cards']}"
     ):
         chat_history.append(
             {"role": "system", "content": CARDS_REINFORCEMENT_SYSTEM_MSG}
@@ -360,11 +426,7 @@ def _get_ai_response(chat_session: ChatSession):
     else:
         chat_history.append({"role": "system", "content": REINFORCEMENT_SYSTEM_MSG})
 
-    return openai.ChatCompletion.create(
-        # model="gpt-3.5-turbo-0613",
-        model="gpt-4o-mini",
-        messages=chat_history,
-    )
+    return client.chat.completions.create(model="gpt-4o-mini", messages=chat_history)
 
 
 init_state()
@@ -389,10 +451,13 @@ try:
         st.caption(
             "All art and text generated by Artificial Intelligence - for entertainment purposes only"
         )
-        st.caption("View on [Github](https://github.com/msull/emilytarot)")
+        st.caption(
+            "Copyright © 2023-2024 OTA Technologies Inc. All rights reserved."
+        )
 
-        with st.expander("Session State", expanded=False):
-            st.write(st.session_state)
+        if DEBUG_MODE == True:
+            with st.expander("Session State", expanded=False):
+                st.write(st.session_state)
 except FlaggedInputError:
     st.error("FLAGGED INPUT RECEIVED")
     st.session_state.flagged_input = True
