@@ -1,6 +1,7 @@
 prod.env.sh
 local/
 env/
+usr_data/
 .DS_Store
 # Byte-compiled / optimized / DLL files
 __pycache__/
