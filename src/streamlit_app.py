@@ -27,7 +27,14 @@ from utils.messages_en import (
  
 download_images_from_github()
 
-SESSION_DIR = os.path.join("..", "usr_data")
+# Get the current directory
+current_dir = os.getcwd()
+
+# Define SESSION_DIR by joining the current directory with "usr_data"
+SESSION_DIR = os.path.join(current_dir, "usr_data")
+
+# Create the directory if it doesn't exist
+os.makedirs(SESSION_DIR, exist_ok=True)
 
 DEBUG_MODE = True
 
