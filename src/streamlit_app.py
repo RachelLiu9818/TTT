@@ -27,7 +27,7 @@ from utils.messages_en import (
  
 download_images_from_github()
 
-SESSION_DIR = "..\\usr_data"
+SESSION_DIR = os.path.join("..", "usr_data")
 
 DEBUG_MODE = True
 
