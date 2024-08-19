@@ -24,11 +24,14 @@ from utils.messages_en import (
     INTROS,
     CARDS_REINFORCEMENT_SYSTEM_MSG,
 )
- 
-download_images_from_github()
 
 # Get the current directory
 current_dir = os.getcwd()
+
+image_dir = os.path.join(current_dir, "images")
+
+if not os.path.exists(image_dir): 
+    download_images_from_github()
 
 # Define SESSION_DIR by joining the current directory with "usr_data"
 SESSION_DIR = os.path.join(current_dir, "usr_data")
@@ -386,7 +389,7 @@ def main():
                     )
                     st.session_state.all_chosen_cards.extend(cards)
                     st.session_state.chosen_virtual_cards = []
-                with st.spinner("Generating AI response"):
+                with st.spinner("erating AI response"):
                     got_valid_response = False
                     attempts = 0
                     max_attempts = 3
