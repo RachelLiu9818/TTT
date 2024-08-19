@@ -73,6 +73,10 @@ def save_session():
     st.experimental_set_query_params(s=st.session_state.session_id)
     path = Path(SESSION_DIR) / (st.session_state.session_id + ".json")
     
+    if not path.exists():
+            path.touch()  # This creates an empty file
+    print(path)
+
     # Filter out non-serializable objects
     serializable_state = {key: value for key, value in st.session_state.items() if is_json_serializable(value)}
     
