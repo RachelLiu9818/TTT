@@ -195,21 +195,21 @@ def main():
     global translations, REINFORCEMENT_SYSTEM_MSG, INITIAL_SYSTEM_MSG, INTROS, CARDS_REINFORCEMENT_SYSTEM_MSG, TAROT_DECK
 
     # Start BGM
-    audio_file_path = '..\\assets\\tarot_bgm.mp3' 
-    audio_file = open(audio_file_path, 'rb')
-    audio_bytes = audio_file.read()
-    # Convert bytes to base64
-    import base64
-    audio_base64 = base64.b64encode(audio_bytes).decode()
+    # audio_file_path = '..\\assets\\tarot_bgm.mp3' 
+    # audio_file = open(audio_file_path, 'rb')
+    # audio_bytes = audio_file.read()
+    # # Convert bytes to base64
+    # import base64
+    # audio_base64 = base64.b64encode(audio_bytes).decode()
 
-    audio_html = f"""
-    </audio>
-    <audio controls allow="autoplay" autoplay="true" loop="true" >
-        <source src="https://raw.githubusercontent.com/OTA-Tech-AI/OTA-Tarot/main/assets/tarot_bgm.mp3" type="audio/mp3">
-        Your browser does not support the audio element.
-    </audio>
-    """
-    st.components.v1.html(audio_html, height=0)
+    # audio_html = f"""
+    # </audio>
+    # <audio controls allow="autoplay" autoplay="true" loop="true" >
+    #     <source src="https://raw.githubusercontent.com/OTA-Tech-AI/OTA-Tarot/main/assets/tarot_bgm.mp3" type="audio/mp3">
+    #     Your browser does not support the audio element.
+    # </audio>
+    # """
+    # st.components.v1.html(audio_html, height=0)
 
     st.markdown(
         f"<h1 style='text-align: center; color: purple; font-size: 70px;'>{translations['Title']}</h1>",
