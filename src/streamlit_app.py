@@ -364,7 +364,7 @@ def main():
                             disabled=virtual_cards,
                         )
                     )
-        if st.form_submit_button(f"Submit"):
+        if st.form_submit_button(f"{translations['Submit']}"):
             can_submit = True
             if len([x for x in answers if x]) != len(ai_commands.questions_to_ask):
                 can_submit = False
@@ -389,7 +389,7 @@ def main():
                     )
                     st.session_state.all_chosen_cards.extend(cards)
                     st.session_state.chosen_virtual_cards = []
-                with st.spinner("erating AI response"):
+                with st.spinner(f"{translations['Thinking']}"):
                     got_valid_response = False
                     attempts = 0
                     max_attempts = 3

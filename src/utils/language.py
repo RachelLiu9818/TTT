@@ -11,7 +11,8 @@ cn = {
     "Pull_Card": "抽牌",
     "Submit": "提交",
     "Selected_Cards": "您选的牌: ",
-    "Colon": "："
+    "Colon": "：",
+    "Thinking": "塔罗隐士正在占卜..."
 }
 
 en = {
@@ -27,7 +28,8 @@ en = {
     "Pull_Card": "Pull Card",
     "Submit": "Submit",
     "Selected_Cards": "The selected cards were: ",
-    "Colon": ":"
+    "Colon": ":",
+    "Thinking": "Generating AI response"
 }
 
 
