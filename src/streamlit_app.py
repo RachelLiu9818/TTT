@@ -39,7 +39,7 @@ SESSION_DIR = os.path.join(current_dir, "usr_data")
 # Create the directory if it doesn't exist
 os.makedirs(SESSION_DIR, exist_ok=True)
 
-DEBUG_MODE = True
+DEBUG_MODE = False
 
 st.set_page_config(
     layout="centered",
