@@ -16,6 +16,7 @@ from utils.helpers import date_id
 
 from utils.tarot_cn import TAROT_DECK
 import utils.language as language
+from download_img import download_images_from_github
 
 from utils.messages_en import (
     REINFORCEMENT_SYSTEM_MSG,
@@ -24,6 +25,7 @@ from utils.messages_en import (
     CARDS_REINFORCEMENT_SYSTEM_MSG,
 )
  
+download_images_from_github()
 
 SESSION_DIR = "..\\usr_data"
 
@@ -201,8 +203,9 @@ def main():
     audio_base64 = base64.b64encode(audio_bytes).decode()
 
     audio_html = f"""
-    <audio controls autoplay="true" loop="true">
-        <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+    </audio>
+    <audio controls allow="autoplay" autoplay="true" loop="true" >
+        <source src="https://raw.githubusercontent.com/OTA-Tech-AI/OTA-Tarot/main/assets/tarot_bgm.mp3" type="audio/mp3">
         Your browser does not support the audio element.
     </audio>
     """
@@ -222,9 +225,19 @@ def main():
         initial_view()
         return
 
-    _, c1, _ = st.columns(3)
-    c1.image(st.session_state.emily_image)
-    del c1
+    # _, c1, _ = st.columns(3)
+    # c1.image(st.session_state.emily_image)
+    # del c1
+
+    image_url = "https://raw.githubusercontent.com/OTA-Tech-AI/OTA-Tarot/main/src/images/emily.png"
+    st.markdown(
+        f"""
+        <div style="text-align: center;">
+            <img src="https://raw.githubusercontent.com/OTA-Tech-AI/OTA-Tarot/main/src/images/emily.png" alt="Stained Glass Tarot Card Reading Scene" width="220"/>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     chat_session = ChatSession(history=st.session_state.chat_history)
 

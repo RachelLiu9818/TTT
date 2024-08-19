@@ -9,3 +9,16 @@
 My name is Tom, I want to know if I can do well on the final exam
 
 I feel confident, don't ask more questions, let me draw card
+
+
+
+
+
+
+
+
+
+
+
+    image_url = "https://raw.githubusercontent.com/OTA-Tech-AI/OTA-Tarot/main/src/images/emily.png"
+    st.markdown(f"![Alt text]({image_url})")
