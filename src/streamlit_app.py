@@ -155,6 +155,8 @@ def init_state():
             st.session_state.all_chosen_cards = []
             st.session_state.bad_responses = []
             st.session_state.total_tokens_used = 0
+            st.session_state.read_count = 0
+            st.session_state.buy_count = 0
 
 
 def initial_view():
@@ -206,7 +208,9 @@ def _extract_commands(content: str) -> AiCommands:
 
 
 def main():
-    global translations, REINFORCEMENT_SYSTEM_MSG, INITIAL_SYSTEM_MSG, INTROS, CARDS_REINFORCEMENT_SYSTEM_MSG, TAROT_DECK
+    global translations, REINFORCEMENT_SYSTEM_MSG, INITIAL_SYSTEM_MSG, INTROS, CARDS_REINFORCEMENT_SYSTEM_MSG, TAROT_DECK, READ_COUNT
+
+    READ_COUNT = 0
 
     # Start BGM
     # audio_file_path = '..\\assets\\tarot_bgm.mp3' 
@@ -272,7 +276,7 @@ def main():
 
     ai_commands = _extract_commands(chat_session.history[-1]["content"])
 
-    if not (ai_commands.draw_cards or ai_commands.questions_to_ask):
+    if (not (ai_commands.draw_cards or ai_commands.questions_to_ask)) or st.session_state.buy_count == 2:
         # reading is over
         _, c1, _ = st.columns(3)
         c1.image(st.session_state.closing_image)
@@ -287,138 +291,166 @@ def main():
 
     virtual_cards = st.session_state.card_draw_type == "Draw cards virtually"
 
-    with st.form("user-input-form"):
-        answers = []
-        cards = []
-        for question in ai_commands.questions_to_ask:
-            answers.append(st.text_area(question))
+    if st.session_state.read_count == 0:
+        with st.form("user-input-form"):
+            answers = []
+            cards = []
+            for question in ai_commands.questions_to_ask:
+                answers.append(st.text_area(question))
 
-        num_cards = 0
-        if ai_commands.draw_cards:
-            num_cards = ai_commands.draw_cards
-            include_s = "s" if num_cards > 1 and language_choice == "English" else ""
-            st.write(f"{translations['Pull']} {num_cards} {translations['Card']}{include_s}")
+            num_cards = 0
+            if ai_commands.draw_cards:                
+                num_cards = ai_commands.draw_cards
+                include_s = "s" if num_cards > 1 and language_choice == "English" else ""
+                st.write(f"{translations['Pull']} {num_cards} {translations['Card']}{include_s}")
 
-            if virtual_cards:
-                # if st.form_submit_button("Switch to your own Tarot deck"):
-                #     st.session_state.chosen_virtual_cards = []
-                #     st.session_state.card_draw_type = (
-                #         "Draw cards from your own tarot deck"
-                #     )
-                #     st.experimental_rerun()
-                st.write(f"{translations['Shuffle_Prompt']}")
-                c1, c2, c3, _ = st.columns((1, 1, 1, 2))
-                # shuffle_seed = c1.text_input(
-                #     "Shuffle Value",
-                #     value=st.session_state.get("shuffle_seed", uuid4().hex),
-                #     help="This value will be used to seed the random generator before drawing cards",
-                # )
-                shuffle_seed = value=st.session_state.get("shuffle_seed", uuid4().hex)
-                if shuffle_seed:
-                    st.session_state.shuffle_seed = shuffle_seed
+                if virtual_cards:
+                    # if st.form_submit_button("Switch to your own Tarot deck"):
+                    #     st.session_state.chosen_virtual_cards = []
+                    #     st.session_state.card_draw_type = (
+                    #         "Draw cards from your own tarot deck"
+                    #     )
+                    #     st.experimental_rerun()
+                    st.write(f"{translations['Shuffle_Prompt']}")
+                    c1, c2, c3, _ = st.columns((1, 1, 1, 2))
+                    # shuffle_seed = c1.text_input(
+                    #     "Shuffle Value",
+                    #     value=st.session_state.get("shuffle_seed", uuid4().hex),
+                    #     help="This value will be used to seed the random generator before drawing cards",
+                    # )
+                    shuffle_seed = value=st.session_state.get("shuffle_seed", uuid4().hex)
+                    if shuffle_seed:
+                        st.session_state.shuffle_seed = shuffle_seed
 
-                if c2.form_submit_button(f"{translations['Shuffle']}"):
-                    st.session_state.shuffle_seed = uuid4().hex
-                    st.experimental_rerun()
-
-                if c3.form_submit_button(f"{translations['Pull_Card']}"):
-                    if len(st.session_state.chosen_virtual_cards) == num_cards:
-                        st.error("Already pulled requested number of cards")
-                    else:
-                        chosen = (
-                            st.session_state.chosen_virtual_cards
-                            + st.session_state.all_chosen_cards
-                        )
-                        card_puller = random.Random(shuffle_seed)
-                        while (choice := card_puller.choice(TAROT_DECK)) in chosen:
-                            pass
-                        st.session_state.chosen_virtual_cards.append(choice)
+                    if c2.form_submit_button(f"{translations['Shuffle']}"):
+                        st.session_state.shuffle_seed = uuid4().hex
                         st.experimental_rerun()
-                for x in range(num_cards):
-                    try:
-                        chosen = st.session_state.chosen_virtual_cards[x]
-                    except IndexError:
-                        chosen = ""
-                    cards.append(
-                        st.text_input(f"{translations['Card'][1:]} {x+1}", value=chosen, disabled=True)
-                    )
 
-            else:
-                if st.form_submit_button("Switch to drawing virtual cards"):
-                    st.session_state.chosen_virtual_cards = []
-                    st.session_state.card_draw_type = "Draw cards virtually"
-                    st.experimental_rerun()
-                st.write("Shuffle your deck and pull cards as instructed")
-                deck = [""] + TAROT_DECK
-                for x in range(num_cards):
-                    try:
-                        chosen = st.session_state.chosen_virtual_cards[x]
-                        select_index = deck.index(chosen)
-                    except IndexError:
-                        select_index = 0
-                    cards.append(
-                        st.selectbox(
-                            f"Card {x+1}",
-                            deck,
-                            index=select_index,
-                            disabled=virtual_cards,
-                        )
-                    )
-        if st.form_submit_button(f"{translations['Submit']}"):
-            can_submit = True
-            if len([x for x in answers if x]) != len(ai_commands.questions_to_ask):
-                can_submit = False
-            if len([x for x in cards if x]) != num_cards:
-                can_submit = False
-
-            if not can_submit:
-                st.error("Answer all questions and draw all cards before submitting")
-            elif len(cards) != len(set(cards)):
-                st.error("Cannot choose the same card more than once")
-                can_submit = False
-
-            if can_submit:
-                # combine the user answers into a single response, and check it for restricted content
-                if answers:
-                    combined_answer = "\n\n".join(answers)
-                    chat_session.user_says(combined_answer)
-                    # _check_user_message(combined_answer)
-                if cards:
-                    chat_session.system_says(
-                        f"{translations['Selected_Cards']}" + ", ".join(cards)
-                    )
-                    st.session_state.all_chosen_cards.extend(cards)
-                    st.session_state.chosen_virtual_cards = []
-                with st.spinner(f"{translations['Thinking']}"):
-                    got_valid_response = False
-                    attempts = 0
-                    max_attempts = 3
-                    while not got_valid_response:
-                        attempts += 1
-                        response = _get_ai_response(chat_session)
-                        try:
-                            _extract_commands(
-                                response.choices[0].message.content
+                    if c3.form_submit_button(f"{translations['Pull_Card']}"):
+                        if len(st.session_state.chosen_virtual_cards) == num_cards:
+                            st.error("Already pulled requested number of cards")
+                        else:
+                            chosen = (
+                                st.session_state.chosen_virtual_cards
+                                + st.session_state.all_chosen_cards
                             )
-                            break
-                        except Exception:
-                            print("Got bad response, trying again")
-                            st.session_state.bad_responses.append(response)
-                            st.session_state.total_tokens_used += response.usage.total_tokens
-                            if attempts >= max_attempts:
-                                print("Out of attempts")
-                                st.error(
-                                    "Encountered an error generating your reading, sorry about that"
+                            card_puller = random.Random(shuffle_seed)
+                            while (choice := card_puller.choice(TAROT_DECK)) in chosen:
+                                pass
+                            st.session_state.chosen_virtual_cards.append(choice)
+                            st.experimental_rerun()
+                    for x in range(num_cards):
+                        try:
+                            chosen = st.session_state.chosen_virtual_cards[x]
+                        except IndexError:
+                            chosen = ""
+                        cards.append(
+                            st.text_input(f"{translations['Card'][1:]} {x+1}", value=chosen, disabled=True)
+                        )
+
+                else:
+                    if st.form_submit_button("Switch to drawing virtual cards"):
+                        st.session_state.chosen_virtual_cards = []
+                        st.session_state.card_draw_type = "Draw cards virtually"
+                        st.experimental_rerun()
+                    st.write("Shuffle your deck and pull cards as instructed")
+                    deck = [""] + TAROT_DECK
+                    for x in range(num_cards):
+                        try:
+                            chosen = st.session_state.chosen_virtual_cards[x]
+                            select_index = deck.index(chosen)
+                        except IndexError:
+                            select_index = 0
+                        cards.append(
+                            st.selectbox(
+                                f"Card {x+1}",
+                                deck,
+                                index=select_index,
+                                disabled=virtual_cards,
+                            )
+                        )
+            if st.form_submit_button(f"{translations['Submit']}"):
+                can_submit = True
+                if len([x for x in answers if x]) != len(ai_commands.questions_to_ask):
+                    can_submit = False
+                if len([x for x in cards if x]) != num_cards:
+                    can_submit = False
+
+                if not can_submit:
+                    st.error("Answer all questions and draw all cards before submitting")
+                elif len(cards) != len(set(cards)):
+                    st.error("Cannot choose the same card more than once")
+                    can_submit = False
+
+                if can_submit:
+                    # combine the user answers into a single response, and check it for restricted content
+                    if answers:
+                        combined_answer = "\n\n".join(answers)
+                        chat_session.user_says(combined_answer)
+                        # _check_user_message(combined_answer)
+                    if cards:
+                        chat_session.system_says(
+                            f"{translations['Selected_Cards']}" + ", ".join(cards)
+                        )
+                        st.session_state.all_chosen_cards.extend(cards)
+                        st.session_state.chosen_virtual_cards = []
+                        st.session_state.read_count = st.session_state.read_count + 1
+                        st.session_state.buy_count = st.session_state.buy_count + 1
+                    with st.spinner(f"{translations['Thinking']}"):
+                        got_valid_response = False
+                        attempts = 0
+                        max_attempts = 3
+                        while not got_valid_response:
+                            attempts += 1
+                            response = _get_ai_response(chat_session)
+                            try:
+                                _extract_commands(
+                                    response.choices[0].message.content
                                 )
-                                return
+                                break
+                            except Exception:
+                                print("Got bad response, trying again")
+                                st.session_state.bad_responses.append(response)
+                                st.session_state.total_tokens_used += response.usage.total_tokens
+                                if attempts >= max_attempts:
+                                    print("Out of attempts")
+                                    st.error(
+                                        "Encountered an error generating your reading, sorry about that"
+                                    )
+                                    return
 
-                st.session_state.total_tokens_used += response.usage.total_tokens
+                    st.session_state.total_tokens_used += response.usage.total_tokens
 
-                chat_session.assistant_says(
-                    response.choices[0].message.content
-                )
+                    chat_session.assistant_says(
+                        response.choices[0].message.content
+                    )
 
-                save_session()
+                    save_session()
+                    st.experimental_rerun()
+    if st.session_state.read_count != 0 and st.session_state.buy_count == 0:
+        html_content = """
+        <div style="display: flex; justify-content: center; align-items: center; ">
+            <script async
+            src="https://js.stripe.com/v3/buy-button.js">
+            </script>
+
+            <stripe-buy-button
+            buy-button-id="buy_btn_1PphjX09wo9qGPKo9rZPY3hI"
+            publishable-key="pk_live_51Pph9j09wo9qGPKoXCJgQdQ7hU8JYkMdnfaDIkJdNlen7wV1RIZXUKVjfOlNxhXWzSgxrWesz9jARbNzhWSYx1sd00GFofECQX"
+            >
+            </stripe-buy-button>
+        </div>
+        """
+    # Embed the HTML content in the Streamlit app
+        st.components.v1.html(html_content)
+
+        col1, col2, col3 = st.columns([1, 1, 1])
+
+        with col2:
+
+            if st.button("我已付款"):
+                
+                st.session_state.read_count = 0
                 st.experimental_rerun()
 
     if len(chat_session.history) > 1:
