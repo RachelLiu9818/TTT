@@ -427,7 +427,7 @@ def main():
 
                     save_session()
                     st.experimental_rerun()
-    if st.session_state.read_count != 0 and st.session_state.buy_count == 0:
+    if st.session_state.read_count != 0 and st.session_state.buy_count < 2:
         html_content = """
         <div style="display: flex; justify-content: center; align-items: center; ">
             <script async
