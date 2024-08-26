@@ -25,6 +25,12 @@ from utils.messages_en import (
     CARDS_REINFORCEMENT_SYSTEM_MSG,
 )
 
+# Get the absolute path to the config.toml file
+config_path = Path('.streamlit/config.toml').resolve()
+
+# Set the environment variable for the Streamlit config file
+os.environ['STREAMLIT_CONFIG_FILE'] = str(config_path)
+
 # Get the current directory
 current_dir = os.getcwd()
 
