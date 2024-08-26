@@ -30,7 +30,7 @@ current_dir = os.getcwd()
 
 image_dir = os.path.join(current_dir, "images")
 
-if not os.path.exists(image_dir): 
+if not os.path.exists(image_dir) or not os.listdir(image_dir):
     download_images_from_github()
 
 # Define SESSION_DIR by joining the current directory with "usr_data"
@@ -141,9 +141,11 @@ def init_state():
 
             session_id = date_id()
             st.session_state.session_id = session_id
+
             imgs = random.sample(
                 [str(x) for x in IMAGE_DIR.iterdir() if x.name != "emily.png"], k=4
             )
+            
             st.session_state.header_images = [imgs[0], imgs[1], imgs[2]]
             st.session_state.emily_image = str(IMAGE_DIR / "emily.png")
             st.session_state.closing_image = imgs[3]
