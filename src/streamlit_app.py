@@ -55,6 +55,15 @@ st.set_page_config(
 
 IMAGE_DIR = (Path(__file__).parent / "images").relative_to(Path(__file__).parent)
 
+# Place the Google AdSense verification code
+adsense_verification_code = """
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1656675476625599"
+     crossorigin="anonymous"></script>
+"""
+
+# Embed the verification code at the top of your app
+st.markdown(adsense_verification_code, unsafe_allow_html=True)
+
 # Select Language
 translations = language.cn
 language_choice = st.selectbox("Language", ("简体中文", "English"))
@@ -216,15 +225,6 @@ def _extract_commands(content: str) -> AiCommands:
 
 
 def main():
-    # Place the Google AdSense verification code
-    adsense_verification_code = """
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1656675476625599"
-         crossorigin="anonymous"></script>
-    """
-    
-    # Embed the verification code at the top of your app
-    st.markdown(adsense_verification_code, unsafe_allow_html=True)
-
     global translations, REINFORCEMENT_SYSTEM_MSG, INITIAL_SYSTEM_MSG, INTROS, CARDS_REINFORCEMENT_SYSTEM_MSG, TAROT_DECK, READ_COUNT
 
     READ_COUNT = 0
