@@ -25,6 +25,15 @@ from utils.messages_en import (
     CARDS_REINFORCEMENT_SYSTEM_MSG,
 )
 
+# Place the Google AdSense verification code
+adsense_verification_code = """
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1656675476625599"
+     crossorigin="anonymous"></script>
+"""
+
+# Embed the verification code at the top of your app
+st.markdown(adsense_verification_code, unsafe_allow_html=True)
+
 # Get the absolute path to the config.toml file
 config_path = Path('.streamlit/config.toml').resolve()
 
