@@ -1,5 +1,6 @@
 global DEBUG_MODE, translations, REINFORCEMENT_SYSTEM_MSG, INITIAL_SYSTEM_MSG, INTROS, CARDS_REINFORCEMENT_SYSTEM_MSG, TAROT_DECK
 
+import time
 import json
 import os
 import random
@@ -7,10 +8,18 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List
 from uuid import uuid4
+
+from dotenv import load_dotenv  # 导入dotenv库
 import openai
+import streamlit as st
+
+# 加载 .env 文件
+load_dotenv()
+
+# 设置 OpenAI API 密钥
+openai.api_key = os.getenv("OPENAI_API_KEY")  # 从环境变量中获取 API 密钥
 
 client = openai.OpenAI()
-import streamlit as st
 
 from utils.helpers import date_id
 
@@ -24,6 +33,7 @@ from utils.messages_en import (
     INTROS,
     CARDS_REINFORCEMENT_SYSTEM_MSG,
 )
+
 
 # Get the absolute path to the config.toml file
 config_path = Path('.streamlit/config.toml').resolve()
@@ -125,10 +135,10 @@ class ChatSession:
 
 def init_state():
     global DEBUG_MODE, translations, REINFORCEMENT_SYSTEM_MSG, INITIAL_SYSTEM_MSG, INTROS, CARDS_REINFORCEMENT_SYSTEM_MSG
-    query_session = st.experimental_get_query_params().get("s")
-    if query_session:
-        query_session = query_session[0]
+    query_params = st.experimental_get_query_params()  # 使用实验性函数获取查询参数
+    query_session = query_params.get("s", [None])[0]  # 默认值为None
 
+    if query_session:
         if (
             "session_id" in st.session_state
             and st.session_state.session_id != query_session
@@ -483,25 +493,36 @@ class FlaggedInputError(RuntimeError):
 #     if response.results[0].flagged:
 #         raise FlaggedInputError()
 
-
 def _get_ai_response(chat_session: ChatSession):
     global DEBUG_MODE, translations, REINFORCEMENT_SYSTEM_MSG, INITIAL_SYSTEM_MSG, INTROS, CARDS_REINFORCEMENT_SYSTEM_MSG
+
     chat_history = chat_session.history[:]
-    # add the initial system message describing the AI's role
     chat_history.insert(0, {"role": "system", "content": INITIAL_SYSTEM_MSG})
 
-    # now add a reinforcing message for the AI, based on whether we are interpreting cards right now or not
     last_msg = chat_history[-1]
-    if last_msg["role"] == "system" and last_msg["content"].startswith(
-        f"{translations['Selected_Cards']}"
-    ):
-        chat_history.append(
-            {"role": "system", "content": CARDS_REINFORCEMENT_SYSTEM_MSG}
-        )
+    if last_msg["role"] == "system" and last_msg["content"].startswith(f"{translations['Selected_Cards']}"):
+        chat_history.append({"role": "system", "content": CARDS_REINFORCEMENT_SYSTEM_MSG})
     else:
         chat_history.append({"role": "system", "content": REINFORCEMENT_SYSTEM_MSG})
 
-    return client.chat.completions.create(model="gpt-4o-mini", messages=chat_history)
+    max_attempts = 5  # 设置最大重试次数
+    for attempt in range(max_attempts):
+        try:
+            time.sleep(1)  # 添加延迟
+            response = client.chat.completions.create(model="gpt-4o-mini", messages=chat_history)
+            return response
+        except Exception as e:  # 捕获所有异常
+            if "Rate limit" in str(e) or "exceeded your current quota" in str(e):
+                wait_time = 2 ** attempt  # 指数退避
+                print(f"Rate limit exceeded. Waiting for {wait_time} seconds before retrying...")
+                time.sleep(wait_time)
+            else:
+                st.error("遇到错误，请稍后再试。")
+                print(f"Error: {e}")
+                return None
+
+    st.error("API请求过于频繁，请稍后再试。")
+    return None
 
 
 init_state()
