@@ -4,7 +4,6 @@
 #
 #    pip-compile requirements.in
 #
-setuptools>=58.0.0
 altair==5.4.1
     # via streamlit
 annotated-types==0.7.0
@@ -159,6 +158,8 @@ wheel==0.44.0
     # via -r requirements.in
 zipp==3.20.2
     # via importlib-metadata
+setuptools>=65.5.1
+
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
