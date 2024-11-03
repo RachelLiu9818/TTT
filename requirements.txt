@@ -1,16 +1,9 @@
-pip>=20.3
-setuptools>=58.0.0
+pip>=24.3.1
+setuptools>=75.3.0
 wheel
 numpy==1.23.5
-
-    # via
-    #   altair
-    #   pandas
-    #   pyarrow
-    #   pydeck
-    #   streamlit
 openai==1.7.2
-    # via -r requirements.in
 streamlit==1.23.0
+
 
 
