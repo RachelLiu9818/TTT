@@ -4,6 +4,7 @@
 #
 #    pip-compile requirements.in
 #
+setuptools>=58.0.0
 altair==5.4.1
     # via streamlit
 annotated-types==0.7.0
